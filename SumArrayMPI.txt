@@ -1,0 +1,47 @@
+import mpi.*; // Import the MPI package
+
+public class SumArrayMPI {
+
+    public static void main(String[] args) {
+        MPI.Init(args); // Initialize MPI
+
+        int size = MPI.COMM_WORLD.Size(); // Total number of processes
+        int rank = MPI.COMM_WORLD.Rank(); // Rank of this process
+
+        int N = 100; // Total elements
+        int[] arr = new int[N];
+        int sum = 0;
+
+        // Initialize array with sample values (eg. 1 to 100)
+        if (rank == 0) {
+            for (int i = 0; i < N; i++) {
+                arr[i] = i + 1;
+            }
+        }
+
+        // Scatter the array data to different processes
+        int localSize = N / size; // Each process will handle this many elements
+        int[] localArr = new int[localSize];
+
+        MPI.COMM_WORLD.Scatter(arr, 0, localSize, MPI.INT, localArr, 0, localSize, MPI.INT, 0);
+
+        // Calculate the sum for the assigned part
+        for (int i = 0; i < localSize; i++) {
+            sum += localArr[i];
+        }
+
+        // Print the intermediate sum from each process
+        System.out.println("Process " + rank + " sum: " + sum);
+
+        // Gather the results from all processes
+        int[] totalSum = new int[1];
+        MPI.COMM_WORLD.Reduce(new int[]{sum}, 0, totalSum, 0, 1, MPI.INT, MPI.SUM, 0);
+
+        // Only root process prints the final sum
+        if (rank == 0) {
+            System.out.println("Total sum: " + totalSum[0]);
+        }
+
+        MPI.Finalize(); // Finalize MPI
+    }
+}
